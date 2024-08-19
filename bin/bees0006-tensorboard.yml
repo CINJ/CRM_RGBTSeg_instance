@@ -1,0 +1,49 @@
+name: bees0006-tensorboard
+
+channels:
+  - pypi
+  - conda-forge
+  - anaconda
+
+dependencies:
+  - python=3.10
+  - wheel
+  - setuptools==69.5.1
+  - cryptography
+  - openssl
+  - pyopenssl
+  - murmurhash
+  - lxml
+  - pip
+
+# Stats and analysis
+  - scipy
+  - numpy
+  - pandas
+  - imbalanced-learn
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - bokeh
+  - shapely
+  - scikit-image
+
+# Jupyter
+  - jupyter-server-proxy
+  - jupyterlab
+  - papermill
+  - ipywidgets
+  - nbconvert
+  - nb_conda_kernels
+  - ipython
+  - ipykernel
+  - spyder
+
+# Requirements
+  - timm
+  - imageio
+
+#PIP Installation
+  - pip:
+    - tensorboard
+

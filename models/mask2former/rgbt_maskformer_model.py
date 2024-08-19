@@ -2,7 +2,7 @@
 # Email: shinwc159@gmail.com
 
 from typing import Tuple
-
+import json
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -34,7 +34,6 @@ class RGBTMaskFormer(nn.Module):
         num_queries: int,
         object_mask_threshold: float,
         overlap_threshold: float,
-        # metadata,
         size_divisibility: int,
         sem_seg_postprocess_before_inference: bool,
         pixel_mean: Tuple[float],
@@ -44,6 +43,7 @@ class RGBTMaskFormer(nn.Module):
         panoptic_on: bool,
         instance_on: bool,
         test_topk_per_image: int,
+        metadata=None
     ):
         """
         Args:
@@ -76,7 +76,7 @@ class RGBTMaskFormer(nn.Module):
         self.num_queries = num_queries
         self.overlap_threshold = overlap_threshold
         self.object_mask_threshold = object_mask_threshold
-        # self.metadata = metadata
+        self.metadata = metadata
         if size_divisibility < 0:
             # use backbone size_divisibility if not set
             size_divisibility = self.backbone.size_divisibility
@@ -189,6 +189,13 @@ class RGBTMaskFormer(nn.Module):
                     panoptic_seg (Tensor): of shape (height, width) where the values are ids for each segment.
                     segments_info (list[dict]): Describe each segment in `panoptic_seg`.
                         Each dict contains keys "id", "category_id", "isthing".
+                * "instances":
+                # TODO: validate this is coming out of the model!
+                    A tuple that represent instance output
+                    instance_seg (Tensor): of shape (height, width) where the values are ids for each segment.
+                    segments_info (list[dict]): Describe each segment in `instance_seg`.
+                        Each dict contains keys "id", "category_id", "isthing".
+                    
         """
         images = [x["image"].to(self.device) for x in batched_inputs]        
         images = [(x - self.pixel_mean) / self.pixel_std for x in images]
@@ -211,8 +218,14 @@ class RGBTMaskFormer(nn.Module):
             # prepare mask classification target
             if "instances" in batched_inputs[0]:
                 gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
+                # This debug is for identifying what (and how many) instances
+                # the data loader has a special case to handle zero instances 
+                # which we need to know about otherwise the model breaks.
+                # for idx, inst in enumerate(gt_instances):
+                #     print(f"Instance {idx} class count: {inst.gt_classes}")
                 targets = self.prepare_targets(gt_instances, images)
             else:
+                print("No targets! This should only happen if you have no instance masks")
                 targets = None
 
             # bipartite matching-based loss
@@ -265,7 +278,7 @@ class RGBTMaskFormer(nn.Module):
                 mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
             ):
                 height = image_size[0]
-                width = image_size[1]           
+                width = image_size[1]
                 processed_results.append({})
 
                 if self.sem_seg_postprocess_before_inference:
@@ -286,12 +299,10 @@ class RGBTMaskFormer(nn.Module):
                 if self.panoptic_on:
                     panoptic_r = retry_if_cuda_oom(self.panoptic_inference)(mask_cls_result, mask_pred_result)
                     processed_results[-1]["panoptic_seg"] = panoptic_r
-                
                 # instance segmentation inference
                 if self.instance_on:
                     instance_r = retry_if_cuda_oom(self.instance_inference)(mask_cls_result, mask_pred_result)
                     processed_results[-1]["instances"] = instance_r
-
             return processed_results
 
     def prepare_targets(self, targets, images):

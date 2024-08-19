@@ -1,8 +1,8 @@
 DATASETS:
-  NAME: "MFdataset"
-  DIR : "./datasets/MFdataset/" 
-  IMS_PER_BATCH: &b 14
-  WORKERS_PER_GPU: 4
+  NAME: "PV1dataset"  
+  DIR : "./datasets/PV1dataset/"
+  IMS_PER_BATCH: &b 15
+  WORKERS_PER_GPU: 24
 MODEL:
   META_ARCHITECTURE: "RGBTMaskFormer"
   BACKBONE:
@@ -10,20 +10,10 @@ MODEL:
   FUSION:
     AGGREGATION: "MAX" # "ADD" "MAX" "ATT_CS"  "ATT_AGG"
     LAYER: ["res2", "res3", "res4", "res5"]
-  SWIN:
-    EMBED_DIM: 96
-    DEPTHS: [2, 2, 18, 2]
-    NUM_HEADS: [3, 6, 12, 24]
-    WINDOW_SIZE: 7
-    APE: False
-    DROP_PATH_RATE: 0.3
-    PATCH_NORM: True
-    SHARE_START_IDX : 4 # 0 is all shared between RGB and thermal backbones except proj layer, 4 is not shared at all.
-  WEIGHTS: "pretrained/swin_small_patch4_window7_224.pkl" # ImageNet 1K pre-trained
   SEM_SEG_HEAD:
     NAME: "MaskFormerHead"
     IGNORE_VALUE: 255
-    NUM_CLASSES: 9
+    NUM_CLASSES: 2 # 5
     LOSS_WEIGHT: 1.0
     CONVS_DIM: 256
     MASK_DIM: 256
@@ -40,9 +30,9 @@ MODEL:
     TRANSFORMER_IN_FEATURE: "multi_scale_pixel_decoder"
     DEEP_SUPERVISION: True
     NO_OBJECT_WEIGHT: 0.1
-    CLASS_WEIGHT: 2.0
-    MASK_WEIGHT: 5.0
-    DICE_WEIGHT: 5.0
+    CLASS_WEIGHT: 5.0 # 2.0 seems like class count is an issue
+    MASK_WEIGHT: 2.0  # 5.0 too many false negatives, we use DICE 
+    DICE_WEIGHT: 5.0  # 5.0 
     HIDDEN_DIM: 256
     NUM_OBJECT_QUERIES: 100
     NHEADS: 8
@@ -58,35 +48,35 @@ MODEL:
     IMPORTANCE_SAMPLE_RATIO: 0.75
     TEST:
       SEMANTIC_ON: True
-      INSTANCE_ON: False
+      INSTANCE_ON: True # False (modified all code to support this)
       PANOPTIC_ON: False
-      OVERLAP_THRESHOLD: 0.8
-      OBJECT_MASK_THRESHOLD: 0.8
+      OVERLAP_THRESHOLD: 0.95 #0.8
+      OBJECT_MASK_THRESHOLD: 0.95 #0.8
   PIXEL_MEAN: [123.675, 116.280, 103.530, 127]
   PIXEL_STD: [58.395, 57.120, 57.375, 60]
   CRMLOSS:
-    MWS_WEIGHT: 1.0
-    SDC_WEIGHT: 1.0
-    SDN_WEIGHT: 1.0
+    MWS_WEIGHT: 1.0 # Multi-Scale Weighted Sum 1.0
+    SDC_WEIGHT: 1.0 # Self-Distillation for Complementary Representations 1.0
+    SDN_WEIGHT: 1.0 # Self-Distillation for Non-local Representations 1.0
 SOLVER:
   IMS_PER_BATCH: *b
-  BASE_LR: 0.0001
-  MAX_ITER: 35000
+  BASE_LR: 0.0001  # 0.0001 
+  MAX_ITER: 20
   WARMUP_FACTOR: 1.0
   WARMUP_ITERS: 0
   WEIGHT_DECAY: 0.05 
-  OPTIMIZER: "ADAMW"
+  OPTIMIZER: "ADAMW" # "SGD"
   LR_SCHEDULER_NAME: "WarmupPolyLR"
-  BACKBONE_MULTIPLIER: 0.1
+  BACKBONE_MULTIPLIER: 0.1 
   CLIP_GRADIENTS:
     ENABLED: True
     CLIP_TYPE: "full_model"
-    CLIP_VALUE: 0.01
+    CLIP_VALUE: 0.01 
     NORM_TYPE: 2.0
   AMP:
     ENABLED: True
 INPUT:
-  MIN_SIZE_TRAIN: !!python/object/apply:eval ["[int(x * 0.1 * 480) for x in range(5, 21)]"]
+  MIN_SIZE_TRAIN: !!python/object/apply:eval ["[int(x * 0.1 * 720) for x in range(5, 21)]"]
   MIN_SIZE_TRAIN_SAMPLING: "choice"
   MIN_SIZE_TEST: 480
   MAX_SIZE_TRAIN: 1920
@@ -94,20 +84,20 @@ INPUT:
   CROP:
     ENABLED: True
     TYPE: "absolute"
-    SIZE: (240, 320)
+    SIZE: (224, 320) # (512, 640) # (224, 320) # 180, 320 # 360, 640 # 720, 1280
     SINGLE_CATEGORY_MAX_AREA: 1.0
   COLOR_AUG_SSD: True
   MASK:
     ENABLED: True
-    SIZE: (256, 320)
+    SIZE: (224, 320)  # (512, 640) # (224, 320) # 224, 320 # 384, 640
     PATCH_SIZE: 32
-    RATIO: 0.5
+    RATIO: 1.0
     TYPE: 'patch' # 'patch', 'square'
     STRATEGY : 'rand_comp' # comp, rand_comp, indiv
   SIZE_DIVISIBILITY: -1
   FORMAT: "RGBT"
   DATASET_MAPPER_NAME: "mask_former_semantic"
 SAVE:
-  DIR_ROOT: "./results_MF"
+  DIR_ROOT: "./results_PV1"
   DIR_NAME: "RGBT_former"
-  FLAG_VIS_GT: False
+  FLAG_VIS_GT: True

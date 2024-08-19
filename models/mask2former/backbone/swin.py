@@ -835,9 +835,11 @@ class RGBT_D2SwinTransformer(Backbone):
         if mask is not None : # train
             rgb_mask = mask[:,0,...]
             thr_mask = mask[:,1,...]
+            # This was to debug the mask scaling configuration - which in our case needs to be 1.0
+            # print(f"x: {x.shape} SWIN Mask {mask.shape} rgb mask: {rgb_mask.shape} thr mask: {thr_mask.shape}")
         else: # val/test
             rgb_mask, thr_mask = None, None
-
+            # print("No mask") 
         rgb_feat = self.RGB_branch(x[:,:3,:,:],rgb_mask)
         thr_feat = self.THR_branch(x[:,[3],:,:],thr_mask)
 

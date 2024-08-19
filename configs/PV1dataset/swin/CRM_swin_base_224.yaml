@@ -1,4 +1,4 @@
-_BASE_: ../Base-KPdataset-SemanticSegmentation.yaml
+_BASE_: ../Base-PV1dataset-InstanceSegmentation.yaml
 MODEL:
   SWIN:
     EMBED_DIM: 128
@@ -10,4 +10,4 @@ MODEL:
     PATCH_NORM: True
     PRETRAIN_IMG_SIZE: 224
     SHARE_START_IDX : 4 
-  WEIGHTS: "pretrained/swin_base_patch4_window7_224_22kto1k.pkl"
+  WEIGHTS: "pretrained/swin_base_patch4_window7_224.pkl"

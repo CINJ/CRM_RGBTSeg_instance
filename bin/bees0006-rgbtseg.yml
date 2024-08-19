@@ -1,0 +1,75 @@
+name: bees0006-rgbtseg
+
+channels:
+  - pytorch
+  - nvidia/label/cuda-11.6.1
+  - pypi
+  - conda-forge
+  - anaconda
+
+dependencies:
+  - python=3.10
+  - wheel
+  - setuptools==69.5.1
+  - cryptography
+  - openssl
+  - pyopenssl
+  - murmurhash
+  - lxml
+  - pip
+
+# Stats and analysis
+  - scipy
+  - numpy
+  - pandas
+  - imbalanced-learn
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - bokeh
+  - shapely
+  - scikit-image
+
+# Jupyter
+  - jupyter-server-proxy
+  - jupyterlab
+  - papermill
+  - ipywidgets
+  - nbconvert
+  - nb_conda_kernels
+  - ipython
+  - ipykernel
+  - spyder
+
+# PyTorch and CUDA
+  - mkl==2023.*
+  - pytorch::pytorch==1.13.1=py3.10_cuda11.6_cudnn8.3.2_0
+  - pytorch::torchvision==0.14.1=py310_cu116
+  # - pytorch::torchaudio==0.13.1
+  # - pytorch::pytorch-cuda=11.6 # Don't use - metapackage
+  # - nvidia/label/cuda-11.6.1::cuda
+  - tensorboard
+  # pytorch-lightning
+
+# Requirements
+  # - detectron2 # Need to build from source
+  # - mmcv=2.2.0=cuda120py310hdd63e59_200 # Need to build from source
+  - timm
+  - imageio
+
+# Requirements (mask2former)
+  - cython
+  - h5py
+  - submitit
+
+#PIP Installation
+  - pip:
+    # - nvidia-cublas-cu12
+    - opencv-python
+    - torch==1.13.1
+    - lightning==1.9.5
+    - pytorch-lightning==1.9.5
+    - git+https://github.com/facebookresearch/detectron2.git
+    - mmcv==1.7.1
+    # - git+https://github.com/open-mmlab/mmcv.git@2.x
+

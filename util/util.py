@@ -3,62 +3,27 @@
 
 import numpy as np 
 from PIL import Image 
+import matplotlib.pyplot as plt
+from typing import Iterable
+from typing import Optional
+import time
 import os
+from datetime import datetime
+import json
 
-# 0:unlabeled, 1:car, 2:person, 3:bike, 4:curve, 5:car_stop, 6:guardrail, 7:color_cone, 8:bump 
-def get_palette_MF():
-    unlabelled = [0,0,0]
-    car        = [64,0,128]
-    person     = [64,64,0]
-    bike       = [0,128,192]
-    curve      = [0,0,192]
-    car_stop   = [128,128,0]
-    guardrail  = [64,64,128]
-    color_cone = [192,128,128]
-    bump       = [192,64,0]
-    palette    = np.array([unlabelled,car, person, bike, curve, car_stop, guardrail, color_cone, bump]).astype(np.uint8)
-    return palette
 
 # 0:unlabeled, 1:fire_extinhuisher, 2:backpack, 3:hand_drill, 4:rescue_randy
-def get_palette_PST():
+def get_palette_PV1():
     unlabelled          = [0,0,0]
-    fire_extinhuisher   = [0,0,255]
-    backpack            = [0,255,0]
-    hand_drill          = [255,0,0]
-    rescue_randy        = [255,255,255]
-    palette    = np.array([unlabelled, fire_extinhuisher, backpack, hand_drill, rescue_randy]).astype(np.uint8)
+    penguin             = [0,0,255]
+    palette    = np.array([unlabelled, penguin]).astype(np.uint8)
     return palette
 
-def get_palette_KP():
-    road = [128, 64, 128]
-    sidewalk = [244, 35, 232]
-    building = [70, 70, 70]
-    wall = [102, 102, 156]
-    fence = [190, 153, 153]
-    pole = [153, 153, 153]
-    traffic_light = [250, 170, 30]
-    traffic_sign = [220, 220, 0]
-    vegetation = [107, 142, 35]
-    terrain = [152, 251, 152]
-    sky = [70, 130, 180]
-    person = [220, 20, 60]
-    rider = [255, 0, 0]
-    car = [0, 0, 142]
-    truck = [0, 0, 70]
-    bus = [0, 60, 100]
-    train = [0, 80, 100]
-    motorcycle = [0, 0, 230]
-    bicycle = [119, 11, 32]
-
-    void = [0, 0, 0]
-
-    palette = np.array([road, sidewalk, building, wall, fence, pole, traffic_light, traffic_sign,
-                        vegetation, terrain, sky, person, rider, car, truck, bus, train, motorcycle, bicycle, void]).astype(np.uint8)
-    return palette
 
 def visualize_pred(palette, pred_):
     mapped_label = palette[pred_]
     return mapped_label
+
 
 def make_save_dir(path_root, pred_name):
     dir_root = os.path.join(path_root)
@@ -82,31 +47,86 @@ def make_save_dir(path_root, pred_name):
     if not os.path.exists(dir_gt):
         os.mkdir(dir_gt)
 
-# We use evalulation metric provided by RTFNet
-# Note.
-# The unlabeled (or background) class of MF & PST900 dataset is 0. Their evaluations consider the unlabeled label.
-# Therefore, the index start from 0.
-# The unlabeled class of KAIST pedestrain dataset is 19. But, it doesn't consider the unlabeled class. 
-def compute_results(conf_total):
-    n_class =  conf_total.shape[0]
-    start_index = 0
-    precision_per_class = np.zeros(n_class)
-    recall_per_class = np.zeros(n_class)
-    iou_per_class = np.zeros(n_class)
-    for cid in range(start_index, n_class): # cid: class id
-        if conf_total[start_index:, cid].sum() == 0:
-            precision_per_class[cid] =  0.
-        else:
-            precision_per_class[cid] = float(conf_total[cid, cid]) / float(conf_total[start_index:, cid].sum()) # precision = TP/TP+FP
 
-        if conf_total[cid, start_index:].sum() == 0:
-            recall_per_class[cid] = 0.
-        else:
-            recall_per_class[cid] = float(conf_total[cid, cid]) / float(conf_total[cid, start_index:].sum()) # recall = TP/TP+FN
+def aggregate_by_node(node_name, json_objects):
+    return [o[node_name] for o in json_objects]
 
-        if (conf_total[cid, start_index:].sum() + conf_total[start_index:, cid].sum() - conf_total[cid, cid]) == 0:
-            iou_per_class[cid] = 0.
-        else:
-            iou_per_class[cid] = float(conf_total[cid, cid]) / float((conf_total[cid, start_index:].sum() + conf_total[start_index:, cid].sum() - conf_total[cid, cid])) # IoU = TP/TP+FP+FN
 
-    return precision_per_class, recall_per_class, iou_per_class
+def load_logs(output_dir):
+    logs = [o for o in os.listdir(output_dir) if o.startswith("log_")]
+    logs.sort(key=lambda f: datetime.strptime(f, 'log_%Y%m%d_%H%M%S.txt'), reverse=True)
+    json_objects = []
+    with open(os.path.join(output_dir, logs[0]), 'r') as file:
+        for line in file:
+            try:
+                json_object = json.loads(line.strip())
+                json_objects.append(json_object)
+            except json.JSONDecodeError:
+                print(f"Skipping invalid JSON: {line.strip()}")
+    return json_objects
+
+
+def confusion_matrix(c):
+    """
+    render confusion matrix
+    :param c: 2 x 2 Numpy array with the values of the confusion matrix [TP, TN],[FP, FN]
+    :return: None
+    """
+    fig, axs = plt.subplots(1,1)
+    c = np.array(c)
+   
+    c = c / c.sum()
+    c = np.round(c, 3)
+    axs.matshow(c, cmap="Wistia")
+    axs.grid(False)
+    plt.xticks([])
+    plt.yticks([])
+    axs.text(x=0, y=0,s=c[0][0], va='center', ha='center', size='xx-large')
+    axs.text(x=1, y=0,s=c[0][1], va='center', ha='center', size='xx-large')
+    axs.text(x=0, y=1,s=c[1][0], va='center', ha='center', size='xx-large')
+    axs.text(x=1, y=1,s=c[1][1], va='center', ha='center', size='xx-large')
+    plt.xlabel('Positive     Negative', fontsize=18)
+    plt.ylabel('False          True', fontsize=18)
+    plt.show()
+
+
+def training_perf(loss, precision, recall, iou, ca):
+    epochs: int = len(loss)
+    passes = np.linspace(1,epochs,epochs)
+    fig, axs = plt.subplots(2,2, figsize=(16, 10))
+    xticks = range(0, epochs+1, 10)
+    plt.setp(axs, xticks=xticks, xticklabels=[f"{int(p):d}" for p in xticks])
+    axs[0][0].plot(passes, loss, label="Loss")
+    axs[0][1].plot(passes, ca, label="Counting Accuracy")
+    axs[1][0].plot(passes, precision, label="Precision")
+    axs[1][0].plot(passes, recall, label="Recall")
+    axs[1][1].plot(passes, iou, label="IoU")
+    axs[0][0].set_ylim(0.0, 1.0)
+    axs[0][1].set_ylim(-50.0, 50.0)
+    axs[1][0].set_ylim(0.0, 1.0)
+    axs[1][1].set_ylim(0.0, 1.0)
+    axs[0][0].legend()
+    axs[0][1].legend()
+    axs[1][0].legend()
+    axs[1][1].legend()
+    axs[0][0].set_xlabel("Training Epochs")
+    axs[0][1].set_xlabel("Training Epochs")
+    axs[1][0].set_xlabel("Training Epochs")
+    axs[1][1].set_xlabel("Training Epochs")
+    plt.show()
+
+
+def evaluation_perf(loss, precision, recall, iou, ca):
+    fig, axs = plt.subplots(1,1, figsize=(14, 8))
+    axs.bar(height = loss, x="Loss")
+    plt.text(x="Loss", y=loss/2.0, s=loss, ha='center', color="white")
+    axs.bar(height = precision, x="Precision")
+    plt.text(x="Precision", y=precision/2.0, s=precision, ha='center', color="white")
+    axs.bar(height = recall, x="Recall")
+    plt.text(x="Recall", y=recall/2.0, s=recall, ha='center', color="white")
+    axs.bar(height = ca, x="Counting Accuracy")
+    plt.text(x="Counting Accuracy", y=ca/2.0, s=loss, ha='center', color="white")
+    axs.bar(height = iou, x="IoU")
+    plt.text(x="IoU", y=iou/2.0, s=iou, ha='center', color="white")
+    plt.show()
+        

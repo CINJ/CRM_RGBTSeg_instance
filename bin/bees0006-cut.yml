@@ -1,0 +1,59 @@
+name: bees0006-cut
+
+channels:
+  - pytorch
+  - nvidia/label/cuda-11.6.1
+  - pypi
+  - conda-forge
+  - anaconda
+
+dependencies:
+  - python=3.10
+  - wheel
+  - setuptools==69.5.1
+  - cryptography
+  - openssl
+  - pyopenssl
+  - murmurhash
+  - lxml
+  - pip
+  - packaging
+
+# Stats and analysis
+  - scipy
+  - numpy
+  - pandas
+  - imbalanced-learn
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - bokeh
+  - shapely
+  - scikit-image
+
+# Jupyter
+  - jupyter-server-proxy
+  - jupyterlab
+  - papermill
+  - ipywidgets
+  - nbconvert
+  - nb_conda_kernels
+  - ipython
+  - ipykernel
+  - spyder
+
+# PyTorch and CUDA
+  - mkl==2023.*
+  - pytorch::pytorch==1.13.1=py3.10_cuda11.6_cudnn8.3.2_0
+  - pytorch::torchvision==0.14.1=py310_cu116
+  - tensorboard
+
+#PIP Installation
+  - pip:
+    # - nvidia-cublas-cu12
+    - torch==1.13.1
+    - GPUtil==1.4.0
+    - Pillow==6.1.0
+    - dominate==2.4.0
+    - visdom
+
